@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
 const ResultSchema = new Schema({
   homeTeam: { type: String, required: true },
