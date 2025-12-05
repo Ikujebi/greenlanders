@@ -29,7 +29,7 @@ export default function Page() {
           </div>
 
           <div className="relative max-w-5xl mx-auto text-center px-6">
-            <h1 className="text-5xl sm:text-6xl font-extrabold text-gray-900 mb-4 tracking-tight drop-shadow-md">
+            <h1 className="text-3xl sm:text-6xl font-extrabold text-gray-900 mb-4 tracking-tight drop-shadow-md">
               Greenlanders Competition Dashboard
             </h1>
             <p className="text-gray-700 sm:text-xl max-w-3xl mx-auto">
