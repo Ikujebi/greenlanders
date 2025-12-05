@@ -176,10 +176,10 @@ export default function ResultsPage() {
             className="p-4 bg-white rounded shadow flex justify-between items-center"
           >
             <div>
-              <p className="font-semibold text-lg">
+              <p className="font-semibold text-lg text-gray-600">
                 {r.homeTeam} {r.homeGoals} - {r.awayGoals} {r.awayTeam}
               </p>
-              <p className="text-sm text-gray-900">
+              <p className="text-sm text-gray-600">
                 Played on: {new Date(r.date).toLocaleString()}
               </p>
             </div>
