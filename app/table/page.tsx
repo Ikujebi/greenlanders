@@ -24,7 +24,7 @@ export default function TablePage() {
   }, []);
 
   return (
-    <div className="p-6 min-h-screen bg-gradient-to-br from-gray-900 to-black text-white">
+    <div className=" md:p-6 min-h-screen bg-gradient-to-br from-gray-900 to-black text-white">
       <h1 className="text-3xl font-bold mb-6 text-center">League Table</h1>
 
       <div className="overflow-x-auto rounded-xl shadow-2xl bg-gray-900">
@@ -55,36 +55,29 @@ export default function TablePage() {
               </tr>
             ) : (
               table.map((t, index) => {
-                const isTopFour = index < 4;
-                const isRelegation = index >= table.length - 3;
+                // Highlight first two (Final) in green
+                const isFinal = index === 0 || index === 1;
+                // Highlight last two (3rd place) in red
+                const isThirdPlace = index >= table.length - 2;
 
                 return (
                   <tr
                     key={t.team}
                     className={`
                       ${index % 2 === 0 ? 'bg-gray-800' : 'bg-gray-900'}
-                      ${isTopFour ? 'border-l-4 border-green-500' : ''}
-                      ${isRelegation ? 'border-l-4 border-red-500' : ''}
+                      ${isFinal ? 'border-l-4 border-green-500' : ''}
+                      ${isThirdPlace ? 'border-l-4 border-red-500' : ''}
                       hover:bg-gray-700 transition
                     `}
                   >
-                    {/* POSITION */}
-                    <td className="p-3 text-gray-400 font-semibold">
-                      {index + 1}
-                    </td>
-
-                    {/* TEAM */}
+                    <td className="p-3 text-gray-400 font-semibold">{index + 1}</td>
                     <td className="p-3 font-semibold">{t.team}</td>
-
-                    {/* STATS */}
                     <td className="p-3 text-center">{t.played}</td>
                     <td className="p-3 text-center">{t.wins}</td>
                     <td className="p-3 text-center">{t.draws}</td>
                     <td className="p-3 text-center">{t.losses}</td>
                     <td className="p-3 text-center">{t.goalsFor}</td>
                     <td className="p-3 text-center">{t.goalsAgainst}</td>
-
-                    {/* GOAL DIFFERENCE */}
                     <td
                       className={`p-3 text-center font-semibold ${
                         t.goalDifference > 0
@@ -97,8 +90,6 @@ export default function TablePage() {
                       {t.goalDifference > 0 && '+'}
                       {t.goalDifference}
                     </td>
-
-                    {/* POINTS */}
                     <td className="p-3 text-center font-bold text-yellow-400">
                       {t.points}
                     </td>
@@ -114,11 +105,11 @@ export default function TablePage() {
       <div className="mt-6 flex gap-6 text-sm justify-center">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 bg-green-500 block"></span>
-          Champions League
+          Final
         </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 bg-red-500 block"></span>
-          Relegation
+          3rd Place
         </div>
       </div>
     </div>
