@@ -1,6 +1,14 @@
 import { connect } from '@/lib/db';
 import Team from '@/models/Team';
 
+function jsonResponse(data: any, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+// GET /api/teams
 export async function GET() {
   try {
     await connect();
@@ -13,20 +21,21 @@ export async function GET() {
       logo: team.logo,
     }));
 
-    return new Response(JSON.stringify(result), { status: 200 });
-  } catch (error) {
+    return jsonResponse(result);
+  } catch (error: any) {
     console.error('Error fetching teams:', error);
-    return new Response('Failed to fetch teams', { status: 500 });
+    return jsonResponse({ error: error.message || 'Failed to fetch teams' }, 500);
   }
 }
 
+// POST /api/teams
 export async function POST(req: Request) {
   try {
     await connect();
     const data = await req.json();
 
     if (!data.name || typeof data.name !== 'string') {
-      return new Response('Team name is required', { status: 400 });
+      return jsonResponse({ error: 'Team name is required' }, 400);
     }
 
     const team = await Team.create({
@@ -41,10 +50,10 @@ export async function POST(req: Request) {
       logo: team.logo,
     };
 
-    return new Response(JSON.stringify(result), { status: 201 });
-  } catch (error) {
+    return jsonResponse(result, 201);
+  } catch (error: any) {
     console.error('Error creating team:', error);
-    return new Response('Failed to create team', { status: 500 });
+    return jsonResponse({ error: error.message || 'Failed to create team' }, 500);
   }
 }
 
@@ -56,18 +65,18 @@ export async function DELETE(req: Request) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return new Response('Team ID is required', { status: 400 });
+      return jsonResponse({ error: 'Team ID is required' }, 400);
     }
 
     const deleted = await Team.findByIdAndDelete(id);
 
     if (!deleted) {
-      return new Response('Team not found', { status: 404 });
+      return jsonResponse({ error: 'Team not found' }, 404);
     }
 
-    return new Response(JSON.stringify({ message: 'Team deleted' }), { status: 200 });
-  } catch (error) {
+    return jsonResponse({ message: 'Team deleted successfully' });
+  } catch (error: any) {
     console.error('Error deleting team:', error);
-    return new Response('Failed to delete team', { status: 500 });
+    return jsonResponse({ error: error.message || 'Failed to delete team' }, 500);
   }
 }

@@ -8,14 +8,33 @@ export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTeams = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
       const res = await fetch('/api/teams');
+
+      if (!res.ok) {
+        // Try to parse JSON error
+        let errorMessage = `HTTP ${res.status} - ${res.statusText}`;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || JSON.stringify(errorData);
+        } catch {
+          const text = await res.text();
+          if (text) errorMessage = text;
+        }
+        throw new Error(errorMessage);
+      }
+
       const data = await res.json();
       setTeams(data);
-    } catch (error) {
-      console.error('Error fetching teams', error);
+    } catch (err: any) {
+      console.error('Error fetching teams:', err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -27,12 +46,20 @@ export default function TeamsPage() {
     try {
       setDeletingId(id);
       const res = await fetch(`/api/teams?id=${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete team');
+
+      if (!res.ok) {
+        let errorMessage = `Failed to delete team`;
+        try {
+          const errData = await res.json();
+          errorMessage = errData.error || errorMessage;
+        } catch {}
+        throw new Error(errorMessage);
+      }
 
       setTeams((prev) => prev.filter((team) => team.id !== id));
-    } catch (error) {
-      console.error(error);
-      alert('Failed to delete team');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message);
     } finally {
       setDeletingId(null);
     }
@@ -57,6 +84,8 @@ export default function TeamsPage() {
 
         {loading ? (
           <p>Loading teams...</p>
+        ) : error ? (
+          <p className="text-red-500">Error: {error}</p>
         ) : teams.length === 0 ? (
           <p className="text-gray-500">No teams found.</p>
         ) : (
