@@ -1,6 +1,5 @@
 import { connect } from "@/lib/db";
 import PlayerStat from "@/models/Player";
-import formidable from "formidable";
 import { v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
@@ -9,45 +8,49 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export const PATCH = async (req: Request, { params }: { params: { id: string } }) => {
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     await connect();
-    const form = formidable({ multiples: false });
 
-    const data = await new Promise<any>((resolve, reject) => {
-      form.parse(req as any, (err, fields, files) => {
-        if (err) reject(err);
-        resolve({ fields, files });
-      });
-    });
+    const form = await req.formData();
+    const file = form.get("picture") as File | null;
 
-    if (!data.files.picture) {
+    if (!file) {
       return new Response(JSON.stringify({ error: "No picture provided" }), { status: 400 });
     }
 
-    const file = data.files.picture as formidable.File;
+    // Convert file to buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    const uploadResult = await cloudinary.uploader.upload(file.filepath, {
-      folder: "players",
-      width: 200,
-      height: 200,
-      crop: "fill",
-      quality: "auto",
-    });
+    // Upload to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload_stream(
+      {
+        folder: "players",
+        width: 200,
+        height: 200,
+        crop: "fill",
+        quality: "auto",
+      },
+      async (error, result) => {
+        if (error || !result) {
+          console.error("Cloudinary upload error:", error);
+          return new Response(JSON.stringify({ error: "Upload failed" }), { status: 500 });
+        }
 
-    const updatedPlayer = await PlayerStat.findByIdAndUpdate(
-      params.id,
-      { picture: uploadResult.secure_url },
-      { new: true }
+        const updatedPlayer = await PlayerStat.findByIdAndUpdate(
+          params.id,
+          { picture: result.secure_url },
+          { new: true }
+        );
+
+        return new Response(JSON.stringify(updatedPlayer), { status: 200 });
+      }
     );
 
-    if (!updatedPlayer) {
-      return new Response(JSON.stringify({ error: "Player not found" }), { status: 404 });
-    }
-
-    return new Response(JSON.stringify(updatedPlayer), { status: 200 });
+    uploadResult.end(buffer);
   } catch (err: any) {
     console.error("Error updating player picture:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
-};
+}
