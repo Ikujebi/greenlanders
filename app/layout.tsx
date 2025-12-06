@@ -33,7 +33,7 @@ export default function RootLayout({
               <Link href="/fixtures" className="hover:text-yellow-400 transition">
                 Fixtures
               </Link>
-              <Link href="/players" className="hover:text-yellow-400 transition">
+              <Link href="/playersStats" className="hover:text-yellow-400 transition">
                 Players
               </Link>
               <Link href="/table" className="hover:text-yellow-400 transition">
