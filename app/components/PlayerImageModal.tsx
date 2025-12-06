@@ -30,10 +30,18 @@ export default function PlayerImageModal({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     setUploading(true);
-    await onUpdatePicture(player.id, file);
-    setUploading(false);
-    onClose(); // close modal after update
+
+    try {
+      // This calls your PATCH route
+      await onUpdatePicture(player.id, file);
+    } catch (err) {
+      console.error("Error updating picture:", err);
+    } finally {
+      setUploading(false);
+      onClose(); // close modal after update
+    }
   };
 
   return (

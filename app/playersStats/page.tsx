@@ -17,14 +17,14 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import PlayerImageModal from "@/app/components/PlayerImageModal"; // updated modal
+import PlayerImageModal from "@/app/components/PlayerImageModal";
 
 type TeamOption = {
   id: string;
   name: string;
 };
 
-// Sortable player item component
+// Sortable player item
 function SortablePlayerItem({
   player,
   showDetails,
@@ -162,14 +162,11 @@ export default function PlayerStatsPage() {
   const [showDetails, setShowDetails] = useState<string | null>(null);
   const [showUpdate, setShowUpdate] = useState<string | null>(null);
 
-  // Modal state
   const [modalPlayer, setModalPlayer] = useState<Player | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  const toggleDetails = (id: string) =>
-    setShowDetails(prev => (prev === id ? null : id));
-  const toggleUpdate = (id: string) =>
-    setShowUpdate(prev => (prev === id ? null : id));
+  const toggleDetails = (id: string) => setShowDetails(prev => (prev === id ? null : id));
+  const toggleUpdate = (id: string) => setShowUpdate(prev => (prev === id ? null : id));
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -183,7 +180,7 @@ export default function PlayerStatsPage() {
   const handleUpdatePicture = async (playerId: string, file: File) => {
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", file); // must match your API route
 
       const res = await fetch(`/api/player-picture/${playerId}`, {
         method: "PATCH",
@@ -196,7 +193,7 @@ export default function PlayerStatsPage() {
       setPlayers(prev =>
         prev.map(p => (p.id === playerId ? { ...p, picture: updatedPlayer.picture } : p))
       );
-      setMessage(`Player picture updated successfully!`);
+      setMessage("Player picture updated successfully!");
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
       console.error("Error updating picture:", err);
@@ -205,7 +202,6 @@ export default function PlayerStatsPage() {
     }
   };
 
-  // Load Teams
   async function loadTeams() {
     try {
       const res = await fetch("/api/teams");
@@ -216,13 +212,14 @@ export default function PlayerStatsPage() {
     }
   }
 
-  // Load Players
   async function loadPlayers() {
     try {
       const res = await fetch("/api/players");
       let data = await res.json();
+
+      // Map _id to id for frontend
       data = data.map((p: any) => ({
-        id: p._id,
+        id: p._id, 
         name: p.name,
         goals: p.goals || 0,
         assists: p.assists || 0,
@@ -231,6 +228,7 @@ export default function PlayerStatsPage() {
         teamId: { id: p.teamId?._id || p.teamId, name: p.teamId?.name || "Unknown Team" },
         picture: p.picture || "/images/player-placeholder.png",
       }));
+
       setPlayers(data);
     } catch (err) {
       console.error("Failed to load players:", err);
@@ -245,7 +243,6 @@ export default function PlayerStatsPage() {
     init();
   }, []);
 
-  // Update Player Stat
   async function updateStat(id: string, stat: string) {
     try {
       const res = await fetch(`/api/playerstats/${id}`, {
@@ -258,56 +255,6 @@ export default function PlayerStatsPage() {
       setPlayers(prev => prev.map(p => (p.id === id ? updated : p)));
     } catch (err) {
       console.error("Error updating stat:", err);
-    }
-  }
-
-  // Add Player
-  async function addPlayer(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newPlayerName || !newPlayerTeam) return;
-
-    try {
-      const formData = new FormData();
-      formData.append("name", newPlayerName);
-      formData.append("teamId", newPlayerTeam);
-      if (newPlayerPicture) formData.append("picture", newPlayerPicture);
-
-      const res = await fetch("/api/players", {
-        method: "POST",
-        body: formData,
-      });
-
-      const created = await res.json();
-      if (!res.ok) {
-        setMessage(`Failed to add: ${created.error}`);
-        setTimeout(() => setMessage(""), 3000);
-        return;
-      }
-
-      const teamObj = teams.find(t => t.id === created.teamId);
-      setPlayers(prev => [
-        ...prev,
-        {
-          id: created._id,
-          name: created.name,
-          goals: created.goals || 0,
-          assists: created.assists || 0,
-          yellowCards: created.yellowCards || 0,
-          redCards: created.redCards || 0,
-          teamId: teamObj || { id: created.teamId, name: "Unknown Team" },
-          picture: created.picture || "/images/player-placeholder.png",
-        },
-      ]);
-
-      setNewPlayerName("");
-      setNewPlayerTeam("");
-      setNewPlayerPicture(null);
-      setMessage(`Player "${created.name}" added successfully!`);
-      setTimeout(() => setMessage(""), 3000);
-    } catch (err) {
-      console.error("Error adding player:", err);
-      setMessage("Network/server error.");
-      setTimeout(() => setMessage(""), 3000);
     }
   }
 
@@ -364,53 +311,7 @@ export default function PlayerStatsPage() {
         </div>
       )}
 
-      {/* Add Player Form */}
-      <form
-        onSubmit={addPlayer}
-        className="mb-6 p-4 sm:p-6 bg-white rounded-3xl shadow-md max-w-3xl mx-auto"
-      >
-        <h2 className="font-semibold text-xl sm:text-2xl mb-3 text-gray-800">
-          Add New Player
-        </h2>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center">
-          <input
-            type="text"
-            placeholder="Player Name"
-            className="border p-2 sm:p-3 rounded-xl flex-1 focus:outline-none focus:ring-2 focus:ring-green-500"
-            value={newPlayerName}
-            onChange={e => setNewPlayerName(e.target.value)}
-            required
-          />
-          <select
-            value={newPlayerTeam}
-            onChange={e => setNewPlayerTeam(e.target.value)}
-            className="border p-2 sm:p-3 rounded-xl w-full sm:w-40 focus:outline-none focus:ring-2 focus:ring-green-500"
-            required
-          >
-            <option value="">Select Team</option>
-            {teams.map(team => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={e => setNewPlayerPicture(e.target.files?.[0] || null)}
-            className="border p-2 sm:p-3 rounded-xl w-full sm:w-32"
-          />
-          <button
-            type="submit"
-            disabled={!newPlayerName || !newPlayerTeam}
-            className="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition disabled:opacity-50"
-          >
-            Add
-          </button>
-        </div>
-      </form>
-
-      {/* Player List with Drag-and-Drop */}
+      {/* Player List */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={filtered.map(p => p.id)} strategy={verticalListSortingStrategy}>
           <div className="bg-white rounded-3xl shadow-md divide-y divide-gray-200 max-w-4xl mx-auto overflow-hidden">
@@ -423,7 +324,7 @@ export default function PlayerStatsPage() {
                 toggleDetails={toggleDetails}
                 toggleUpdate={toggleUpdate}
                 updateStat={updateStat}
-                onImageClick={handleModal} // Pass handler
+                onImageClick={handleModal}
               />
             ))}
           </div>
@@ -435,8 +336,8 @@ export default function PlayerStatsPage() {
         player={modalPlayer}
         show={showModal}
         onClose={handleCloseModal}
-        onZoom={(player) => alert(`Zooming ${player.name}`)}
-        onUpdatePicture={handleUpdatePicture} // updated prop
+        onZoom={player => alert(`Zooming ${player.name}`)}
+        onUpdatePicture={handleUpdatePicture}
       />
     </div>
   );
