@@ -81,7 +81,7 @@ export default function Page() {
           </Link>
 
           <Link
-            href="/players"
+            href="/playersStats"
             className="relative overflow-hidden p-6 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl shadow-lg hover:scale-105 transform transition duration-300"
           >
             <h2 className="text-xl font-bold mb-2">Player Stats</h2>
