@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from "next/server";
 import { connect } from "@/lib/db";
 import PlayerStat from "@/models/Player";
 import { v2 as cloudinary } from "cloudinary";
@@ -8,49 +9,53 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     await connect();
 
-    const form = await req.formData();
+    const form = await request.formData();
     const file = form.get("picture") as File | null;
 
     if (!file) {
-      return new Response(JSON.stringify({ error: "No picture provided" }), { status: 400 });
+      return NextResponse.json({ error: "No picture provided" }, { status: 400 });
     }
 
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Upload to Cloudinary
-    const uploadResult = await cloudinary.uploader.upload_stream(
-      {
-        folder: "players",
-        width: 200,
-        height: 200,
-        crop: "fill",
-        quality: "auto",
-      },
-      async (error, result) => {
-        if (error || !result) {
-          console.error("Cloudinary upload error:", error);
-          return new Response(JSON.stringify({ error: "Upload failed" }), { status: 500 });
+    // Cloudinary upload using stream
+    const uploadResult = await new Promise((resolve, reject) => {
+      const upload = cloudinary.uploader.upload_stream(
+        {
+          folder: "players",
+          width: 200,
+          height: 200,
+          crop: "fill",
+          quality: "auto",
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
         }
+      );
 
-        const updatedPlayer = await PlayerStat.findByIdAndUpdate(
-          params.id,
-          { picture: result.secure_url },
-          { new: true }
-        );
+      upload.end(buffer);
+    });
 
-        return new Response(JSON.stringify(updatedPlayer), { status: 200 });
-      }
+    // Update player picture in DB
+    const updatedPlayer = await PlayerStat.findByIdAndUpdate(
+      params.id,
+      { picture: (uploadResult as any).secure_url },
+      { new: true }
     );
 
-    uploadResult.end(buffer);
+    return NextResponse.json(updatedPlayer, { status: 200 });
   } catch (err: any) {
     console.error("Error updating player picture:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
