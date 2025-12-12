@@ -42,9 +42,12 @@ export default function LeaderboardColumns({
         <span className="block text-sm text-gray-400">{subtitle}</span>
       </h2>
 
-      {/* Loading state */}
+      {/* Loading state with spinner */}
       {list.length === 0 ? (
-        <div className="text-center text-gray-400 py-8">Loading players...</div>
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="w-12 h-12 border-4 border-blue-500 border-dashed rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-400">Loading players...</p>
+        </div>
       ) : (
         <div className="flex flex-col divide-y divide-gray-700">
           {list.map((player, index) => (
@@ -87,7 +90,7 @@ export default function LeaderboardColumns({
 
               {/* Expanded Card */}
               {expandedPlayerId === player.id && (
-                <div className="p-4 bg-gray-800 rounded-xl mt-2">
+                <div className="p-4 bg-gray-800 rounded-xl mt-2 transition-all duration-300 ease-in-out">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     {/* Player Info */}
                     <div className="flex items-center gap-4">
