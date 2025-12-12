@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { useState } from "react";
 import { Player } from "@/types/stats";
 
 interface Props {
@@ -29,6 +30,13 @@ export default function LeaderboardColumns({
   topByRed,
   primaryStat
 }: Props) {
+  const [notification, setNotification] = useState<string>("");
+
+  const handleUpdateStat = async (id: string, field: string, playerName: string) => {
+    await updateStat(id, field);
+    setNotification(`${field.charAt(0).toUpperCase() + field.slice(1)} added for ${playerName}!`);
+    setTimeout(() => setNotification(""), 3000);
+  };
 
   const renderColumn = (
     title: string,
@@ -42,7 +50,13 @@ export default function LeaderboardColumns({
         <span className="block text-sm text-gray-400">{subtitle}</span>
       </h2>
 
-      {/* Loading state with spinner */}
+      {/* Notification */}
+      {notification && (
+        <div className="mb-2 p-2 bg-green-700 text-white rounded text-center">
+          {notification}
+        </div>
+      )}
+
       {list.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8">
           <div className="w-12 h-12 border-4 border-blue-500 border-dashed rounded-full animate-spin mb-4"></div>
@@ -51,13 +65,12 @@ export default function LeaderboardColumns({
       ) : (
         <div className="flex flex-col divide-y divide-gray-700">
           {list.map((player, index) => (
-            <div key={player.id}>
+            <div key={player.id || index}>
               {/* Player Row */}
               <div
                 className="py-3 flex items-center justify-between cursor-pointer"
                 onClick={() => toggleExpand(player.id)}
               >
-                {/* LEFT SIDE */}
                 <div className="flex items-center gap-4">
                   <div className="text-xl font-bold text-gray-300 w-8 text-center">{index + 1}.</div>
 
@@ -65,7 +78,7 @@ export default function LeaderboardColumns({
                     width={1000}
                     height={1000}
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent expand toggle
+                      e.stopPropagation();
                       openImageModal(player);
                     }}
                     src={player.picture || "/images/player-placeholder.png"}
@@ -79,7 +92,6 @@ export default function LeaderboardColumns({
                   </div>
                 </div>
 
-                {/* RIGHT SIDE: STAT */}
                 <div className="text-xl font-bold text-white">
                   {statKey === "goals" && player.goals}
                   {statKey === "assists" && player.assists}
@@ -92,7 +104,6 @@ export default function LeaderboardColumns({
               {expandedPlayerId === player.id && (
                 <div className="p-4 bg-gray-800 rounded-xl mt-2 transition-all duration-300 ease-in-out">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    {/* Player Info */}
                     <div className="flex items-center gap-4">
                       <Image
                         width={1000}
@@ -114,17 +125,16 @@ export default function LeaderboardColumns({
                       </div>
                     </div>
 
-                    {/* Controls */}
                     <div className="flex flex-col gap-2 sm:items-end">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => updateStat(player.id, "goals")}
+                          onClick={() => handleUpdateStat(player.id, "goals", player.name)}
                           className="px-3 py-2 bg-green-600 text-white rounded-md text-sm"
                         >
                           + Goal
                         </button>
                         <button
-                          onClick={() => updateStat(player.id, "assists")}
+                          onClick={() => handleUpdateStat(player.id, "assists", player.name)}
                           className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm"
                         >
                           + Assist
@@ -132,13 +142,13 @@ export default function LeaderboardColumns({
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => updateStat(player.id, "yellow")}
+                          onClick={() => handleUpdateStat(player.id, "yellow", player.name)}
                           className="px-3 py-2 bg-yellow-500 text-white rounded-md text-sm"
                         >
                           + Yellow
                         </button>
                         <button
-                          onClick={() => updateStat(player.id, "red")}
+                          onClick={() => handleUpdateStat(player.id, "red", player.name)}
                           className="px-3 py-2 bg-red-600 text-white rounded-md text-sm"
                         >
                           + Red
