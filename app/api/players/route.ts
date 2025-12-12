@@ -1,6 +1,6 @@
+import { NextResponse } from "next/server";
 import { connect } from "@/lib/db";
 import PlayerStat from "@/models/Player";
-import formidable from "formidable";
 import { v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
@@ -14,42 +14,56 @@ export async function GET() {
   try {
     await connect();
     const players = await PlayerStat.find().populate("teamId");
-    return new Response(JSON.stringify(players), { status: 200 });
+    return NextResponse.json(players, { status: 200 });
   } catch (err: any) {
     console.error("Failed to fetch players:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
-// POST: create a new player
+// POST: create a new player (NO FORMIDABLE)
 export async function POST(req: Request) {
   try {
     await connect();
 
-    const form = formidable({ multiples: false });
+    const formData = await req.formData();
 
-    const data = await new Promise<any>((resolve, reject) => {
-      form.parse(req as any, (err, fields, files) => {
-        if (err) reject(err);
-        resolve({ fields, files });
+    const name = formData.get("name") as string;
+    const teamId = formData.get("teamId") as string;
+    const picture = formData.get("picture") as File | null;
+
+    if (!name || !teamId) {
+      return NextResponse.json(
+        { error: "Name and teamId are required" },
+        { status: 400 }
+      );
+    }
+
+    let pictureUrl = "";
+
+    // Handle file upload
+    if (picture) {
+      const arrayBuffer = await picture.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: "players",
+              width: 200,
+              height: 200,
+              crop: "fill",
+              quality: "auto",
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          )
+          .end(buffer);
       });
-    });
 
-    const { name, teamId } = data.fields;
-    if (!name || !teamId)
-      return new Response(JSON.stringify({ error: "Name and teamId are required" }), { status: 400 });
-
-    let pictureUrl: string | undefined;
-
-    if (data.files.picture) {
-      const file = data.files.picture as formidable.File;
-      const uploadResult = await cloudinary.uploader.upload(file.filepath, {
-        folder: "players",
-        width: 200,
-        height: 200,
-        crop: "fill",
-        quality: "auto",
-      });
       pictureUrl = uploadResult.secure_url;
     }
 
@@ -63,9 +77,9 @@ export async function POST(req: Request) {
       picture: pictureUrl,
     });
 
-    return new Response(JSON.stringify(player), { status: 201 });
+    return NextResponse.json(player, { status: 201 });
   } catch (err: any) {
     console.error("Error creating player:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

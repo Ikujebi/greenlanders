@@ -2,231 +2,64 @@
 
 import { useEffect, useState } from "react";
 import { Player } from "@/types/stats";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import AddPlayerForm from "@/app/components/AddPlayerForm";
 import PlayerImageModal from "@/app/components/PlayerImageModal";
+import LeaderboardColumns from "../components/Leaderboard";
 
 type TeamOption = {
   id: string;
   name: string;
 };
 
-// Sortable player item
-function SortablePlayerItem({
-  player,
-  showDetails,
-  showUpdate,
-  toggleDetails,
-  toggleUpdate,
-  updateStat,
-  onImageClick,
-}: {
-  player: Player;
-  showDetails: string | null;
-  showUpdate: string | null;
-  toggleDetails: (id: string) => void;
-  toggleUpdate: (id: string) => void;
-  updateStat: (id: string, stat: string) => void;
-  onImageClick: (player: Player) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-    id: player.id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="flex flex-col sm:flex-row items-center gap-3 p-3 sm:p-4 hover:bg-gray-50 transition relative bg-white rounded-xl shadow-sm"
-    >
-      {/* Picture */}
-      <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
-        <img
-          src={player.picture || "/images/player-placeholder.png"}
-          alt={player.name}
-          className="w-full h-full object-cover rounded-full border border-gray-300 cursor-pointer"
-          onClick={() => onImageClick(player)}
-        />
-      </div>
-
-      {/* Player Info */}
-      <div className="flex-1 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2 sm:gap-4 w-full">
-        <div>
-          <p className="font-bold text-base sm:text-lg text-gray-800">{player.name}</p>
-          <p className="text-gray-500 text-xs sm:text-sm">
-            {player.teamId?.name || "Unknown Team"}
-          </p>
-        </div>
-
-        <div className="flex gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
-          <button
-            onClick={() => toggleDetails(player.id)}
-            className="px-2 py-1 sm:px-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs sm:text-sm"
-          >
-            {showDetails === player.id ? "Hide Stats" : "View Stats"}
-          </button>
-          <button
-            onClick={() => toggleUpdate(player.id)}
-            className="px-2 py-1 sm:px-3 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs sm:text-sm"
-          >
-            {showUpdate === player.id ? "Close Update" : "Update Stats"}
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Panel */}
-      {showDetails === player.id && (
-        <div className="mt-2 w-full p-2 sm:p-3 bg-gray-50 rounded-xl border border-gray-200">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-gray-700 text-xs sm:text-sm">
-            <p>
-              <strong>Goals:</strong> {player.goals}
-            </p>
-            <p>
-              <strong>Assists:</strong> {player.assists}
-            </p>
-            <p>
-              <strong>Yellow Cards:</strong> {player.yellowCards}
-            </p>
-            <p>
-              <strong>Red Cards:</strong> {player.redCards}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Update Panel */}
-      {showUpdate === player.id && (
-        <div className="mt-2 w-full p-2 sm:p-3 bg-white border border-gray-300 rounded-xl">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2">
-            <button
-              onClick={() => updateStat(player.id, "goals")}
-              className="px-1 sm:px-2 py-1 sm:py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs sm:text-sm"
-            >
-              + Goal
-            </button>
-            <button
-              onClick={() => updateStat(player.id, "assists")}
-              className="px-1 sm:px-2 py-1 sm:py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs sm:text-sm"
-            >
-              + Assist
-            </button>
-            <button
-              onClick={() => updateStat(player.id, "yellow")}
-              className="px-1 sm:px-2 py-1 sm:py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-xs sm:text-sm"
-            >
-              + Yellow
-            </button>
-            <button
-              onClick={() => updateStat(player.id, "red")}
-              className="px-1 sm:px-2 py-1 sm:py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-xs sm:text-sm"
-            >
-              + Red
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function PlayerStatsPage() {
+export default function PlayerStatsBoardPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<TeamOption[]>([]);
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
-  const [newPlayerName, setNewPlayerName] = useState("");
-  const [newPlayerTeam, setNewPlayerTeam] = useState("");
-  const [newPlayerPicture, setNewPlayerPicture] = useState<File | null>(null);
   const [message, setMessage] = useState("");
 
-  const [showDetails, setShowDetails] = useState<string | null>(null);
-  const [showUpdate, setShowUpdate] = useState<string | null>(null);
+  const [primaryStat, setPrimaryStat] =
+    useState<"goals" | "assists" | "yellow" | "red">("goals");
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
 
   const [modalPlayer, setModalPlayer] = useState<Player | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  const toggleDetails = (id: string) => setShowDetails(prev => (prev === id ? null : id));
-  const toggleUpdate = (id: string) => setShowUpdate(prev => (prev === id ? null : id));
-
-  const sensors = useSensors(useSensor(PointerSensor));
-
-  const handleModal = (player: Player) => {
-    setModalPlayer(player);
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => setShowModal(false);
-
-  const handleUpdatePicture = async (playerId: string, file: File) => {
-    try {
-      const formData = new FormData();
-      formData.append("file", file); // must match your API route
-
-      const res = await fetch(`/api/player-picture/${playerId}`, {
-        method: "PATCH",
-        body: formData,
-      });
-
-      const updatedPlayer = await res.json();
-      if (!res.ok) throw new Error(updatedPlayer.error || "Failed to update");
-
-      setPlayers(prev =>
-        prev.map(p => (p.id === playerId ? { ...p, picture: updatedPlayer.picture } : p))
-      );
-      setMessage("Player picture updated successfully!");
-      setTimeout(() => setMessage(""), 3000);
-    } catch (err) {
-      console.error("Error updating picture:", err);
-      setMessage("Failed to update player picture.");
-      setTimeout(() => setMessage(""), 3000);
-    }
-  };
-
+  // Load Teams
   async function loadTeams() {
     try {
       const res = await fetch("/api/teams");
       const data = await res.json();
-      setTeams(data.map((t: any) => ({ id: t._id || t.id, name: t.name })));
+
+      setTeams(
+        data.map((t: any) => ({
+          id: t._id || t.id,
+          name: t.name
+        }))
+      );
     } catch (err) {
       console.error("Failed to load teams:", err);
     }
   }
 
+  // Load Players
   async function loadPlayers() {
     try {
       const res = await fetch("/api/players");
       let data = await res.json();
 
-      // Map _id to id for frontend
       data = data.map((p: any) => ({
-        id: p._id, 
+        id: p._id,
         name: p.name,
         goals: p.goals || 0,
         assists: p.assists || 0,
         yellowCards: p.yellowCards || 0,
         redCards: p.redCards || 0,
-        teamId: { id: p.teamId?._id || p.teamId, name: p.teamId?.name || "Unknown Team" },
-        picture: p.picture || "/images/player-placeholder.png",
+        teamId: {
+          id: p.teamId?._id || p.teamId,
+          name: p.teamId?.name || "Unknown Team"
+        },
+        picture: p.picture || "/images/player-placeholder.png"
       }));
 
       setPlayers(data);
@@ -236,64 +69,115 @@ export default function PlayerStatsPage() {
   }
 
   useEffect(() => {
-    async function init() {
-      await loadTeams();
-      await loadPlayers();
-    }
-    init();
+    loadTeams();
+    loadPlayers();
   }, []);
 
+  // Expand player card
+  const toggleExpand = (id: string) => {
+    setExpandedPlayerId(prev => (prev === id ? null : id));
+  };
+
+  // Open modal
+  const openImageModal = (player: Player) => {
+    setModalPlayer(player);
+    setShowModal(true);
+  };
+
+  const closeImageModal = () => setShowModal(false);
+
+  // Update player picture
+  const handleUpdatePicture = async (playerId: string, file: File): Promise<void> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(`/api/player-picture/${playerId}`, {
+        method: "PATCH",
+        body: formData
+      });
+
+      const updatedPlayer = await res.json();
+      if (!res.ok) throw new Error(updatedPlayer.error || "Failed to update");
+
+      setPlayers(prev =>
+        prev.map(p => (p.id === playerId ? { ...p, picture: updatedPlayer.picture } : p))
+      );
+
+      setMessage("Player picture updated successfully!");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      console.error("Error updating picture:", err);
+      setMessage("Failed to update player picture.");
+      setTimeout(() => setMessage(""), 3000);
+    }
+  };
+
+  // Update stats
   async function updateStat(id: string, stat: string) {
     try {
       const res = await fetch(`/api/playerstats/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stat }),
+        body: JSON.stringify({ stat })
       });
+
       const updated = await res.json();
-      if (!res.ok) return console.error("Failed to update:", updated);
+
+      if (!res.ok) {
+        setMessage("Failed to update stat");
+        setTimeout(() => setMessage(""), 3000);
+        return;
+      }
+
       setPlayers(prev => prev.map(p => (p.id === id ? updated : p)));
     } catch (err) {
       console.error("Error updating stat:", err);
+      setMessage("Failed to update stat");
+      setTimeout(() => setMessage(""), 3000);
     }
   }
 
+  // Filtering
   const filtered = players.filter(p => {
     const matchName = p.name.toLowerCase().includes(search.toLowerCase());
     const matchTeam = teamFilter ? p.teamId.id === teamFilter : true;
     return matchName && matchTeam;
   });
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (active.id !== over?.id) {
-      setPlayers(prev => {
-        const oldIndex = prev.findIndex(p => p.id === active.id);
-        const newIndex = prev.findIndex(p => p.id === over?.id);
-        return arrayMove(prev, oldIndex, newIndex);
-      });
-    }
+  // Sorting
+  const topByGoals = [...filtered].sort((a, b) => b.goals - a.goals);
+  const topByAssists = [...filtered].sort((a, b) => b.assists - a.assists);
+  const topByYellow = [...filtered].sort((a, b) => b.yellowCards - a.yellowCards);
+  const topByRed = [...filtered].sort((a, b) => b.redCards - a.redCards);
+
+  // Add player
+  const handlePlayerAdded = (player: Player) => {
+    setPlayers(prev => [...prev, player]);
+    setMessage("Player added");
+    setTimeout(() => setMessage(""), 2500);
   };
 
   return (
     <div className="p-4 sm:p-8 bg-gray-900 min-h-screen">
       <h1 className="text-3xl sm:text-4xl font-bold mb-6 text-white text-center">
-        Player Stats Dashboard
+        Player Stats Board
       </h1>
 
-      {/* Search + Filter */}
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6 justify-center">
         <input
           type="text"
           placeholder="Search player..."
-          className="border p-2 sm:p-3 rounded-xl flex-1 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-gray-300 p-2 sm:p-3 rounded-xl flex-1 text-gray-700"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+
         <select
           value={teamFilter}
           onChange={e => setTeamFilter(e.target.value)}
-          className="border p-2 sm:p-3 rounded-xl w-full sm:w-60 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-gray-300 p-2 sm:p-3 rounded-xl w-full sm:w-60 text-gray-700"
         >
           <option value="">All Teams</option>
           {teams.map(team => (
@@ -304,41 +188,100 @@ export default function PlayerStatsPage() {
         </select>
       </div>
 
+      {/* Hidden Add Player Form */}
+      <div className="hidden">
+        <AddPlayerForm teams={teams} onPlayerAdded={handlePlayerAdded} />
+      </div>
+
+      {/* TABS */}
+      <div className="mb-6">
+
+        {/* MOBILE SELECT */}
+        <div className="sm:hidden mb-6">
+          <select
+            value={primaryStat}
+            onChange={(e) => setPrimaryStat(e.target.value as any)}
+            className="w-full p-3 rounded-xl bg-gray-800 text-white"
+          >
+            <option value="goals">Goals</option>
+            <option value="assists">Assists</option>
+            <option value="yellow">Yellow Cards</option>
+            <option value="red">Red Cards</option>
+          </select>
+        </div>
+
+        {/* DESKTOP TABS */}
+        <div className="hidden sm:flex items-center justify-center gap-3">
+          <button
+            className={`px-4 py-2 rounded-xl font-semibold ${
+              primaryStat === "goals" ? "bg-blue-600 text-white" : "bg-gray-300 text-gray-800"
+            }`}
+            onClick={() => setPrimaryStat("goals")}
+          >
+            Goals
+          </button>
+
+          <button
+            className={`px-4 py-2 rounded-xl font-semibold ${
+              primaryStat === "assists" ? "bg-blue-600 text-white" : "bg-gray-300 text-gray-800"
+            }`}
+            onClick={() => setPrimaryStat("assists")}
+          >
+            Assists
+          </button>
+
+          <button
+            className={`px-4 py-2 rounded-xl font-semibold ${
+              primaryStat === "yellow" ? "bg-blue-600 text-white" : "bg-gray-300 text-gray-800"
+            }`}
+            onClick={() => setPrimaryStat("yellow")}
+          >
+            Yellow Cards
+          </button>
+
+          <button
+            className={`px-4 py-2 rounded-xl font-semibold ${
+              primaryStat === "red" ? "bg-blue-600 text-white" : "bg-gray-300 text-gray-800"
+            }`}
+            onClick={() => setPrimaryStat("red")}
+          >
+            Red Cards
+          </button>
+        </div>
+
+      </div>
+
       {/* Message */}
       {message && (
-        <div className="mb-4 p-2 sm:p-3 bg-green-100 text-green-800 rounded-xl text-center font-medium">
+        <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-xl text-center">
           {message}
         </div>
       )}
 
-      {/* Player List */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={filtered.map(p => p.id)} strategy={verticalListSortingStrategy}>
-          <div className="bg-white rounded-3xl shadow-md divide-y divide-gray-200 max-w-4xl mx-auto overflow-hidden">
-            {filtered.map(player => (
-              <SortablePlayerItem
-                key={player.id}
-                player={player}
-                showDetails={showDetails}
-                showUpdate={showUpdate}
-                toggleDetails={toggleDetails}
-                toggleUpdate={toggleUpdate}
-                updateStat={updateStat}
-                onImageClick={handleModal}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
-
-      {/* Modal */}
-      <PlayerImageModal
-        player={modalPlayer}
-        show={showModal}
-        onClose={handleCloseModal}
-        onZoom={player => alert(`Zooming ${player.name}`)}
-        onUpdatePicture={handleUpdatePicture}
+      {/* Leaderboard */}
+      <LeaderboardColumns
+        expandedPlayerId={expandedPlayerId}
+        toggleExpand={toggleExpand}
+        updateStat={updateStat}
+        openImageModal={openImageModal}
+        setExpandedPlayerId={setExpandedPlayerId}
+        topByGoals={topByGoals}
+        topByAssists={topByAssists}
+        topByYellow={topByYellow}
+        topByRed={topByRed}
+        primaryStat={primaryStat}
       />
+
+      {/* Player Image Modal */}
+      {modalPlayer && (
+        <PlayerImageModal
+          player={modalPlayer}
+          show={showModal}
+          onClose={closeImageModal}
+          onUpdatePicture={handleUpdatePicture}
+          onZoom={player => alert(`Zooming ${player.name}`)}
+        />
+      )}
     </div>
   );
 }
