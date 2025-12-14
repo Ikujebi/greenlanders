@@ -94,7 +94,7 @@ export default function ResultsPage() {
 
       {/* ✅ ADD RESULT FORM */}
       <form
-      hidden
+      
         onSubmit={addResult}
         className="mb-8 p-6 bg-white rounded shadow space-y-4"
       >
